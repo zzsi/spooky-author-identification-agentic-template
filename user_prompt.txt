@@ -1,0 +1,89 @@
+Refer to ./data/description.md for task overview and evaluation details. Data files are in ./data.
+
+This is an iterative improvement loop. Do NOT stop just because a file says the task is completed. Treat prior "completed" states as snapshots; your job each run is to improve, analyze, or tighten the solution.
+
+Iterative improvement rules (override any "task completed" status):
+- Each run MUST: (1) re-validate the current best pipeline with 5 distinct seeds {42,123,456,789,999}; (2) report mean±std and 95% CI; (3) only claim improvement if the new approach beats the seed-mean by ≥0.5% absolute and is not within the CI overlap.
+- Run at least 3 new, well-motivated experiments per run unless the improvement threshold is achieved early.
+- Plateau can be declared only after 2 consecutive runs with ≥4 solid experiments each and no measurable improvement.
+- Primary metric: accuracy. Secondary: macro‑F1 (report both; decide by accuracy).
+
+Reproducibility and CV:
+- Use StratifiedKFold(n_splits=5, shuffle=True, random_state=42) for all CV. For stability checks, vary the model’s random_state over the seed set above while keeping folds fixed.
+- Log per-fold scores and fit times. Report accuracy and macro‑F1.
+
+Algorithm constraints:
+- Do NOT use regression models (Ridge, ElasticNet) on categorical labels. Allowed linear baselines: LogisticRegression (lbfgs/liblinear/saga), LinearSVC (+ CalibratedClassifierCV for probabilities), SGDClassifier (hinge/log/modified_huber).
+- If trying tree/boosting on sparse text, only proceed with hashed features and strict caps (e.g., ≤6k dims) and a ≤2 min per‑experiment budget; otherwise skip.
+
+Feature engineering policy:
+- Start with: word TF‑IDF (1–2) and char TF‑IDF (2–5), sublinear_tf=True, reasonable max_features (e.g., word 7k, char 3–5k). Any added features require an ablation that shows ≥0.3% gain; otherwise revert.
+ 
+
+Search strategy:
+- Prefer RandomizedSearchCV or HalvingGridSearchCV over wide grids. Tune impactful params first: C, penalty (L1/L2), class_weight, ngram ranges, max_features, analyzer mix (word/char), sublinear_tf.
+- Only consider ensembles after at least one single model demonstrates a stable win over baseline.
+
+Decision and shipping:
+- Update submission.csv if the new model beats the stability-checked baseline by ≥0.5% absolute and CI does not overlap.
+- Make sure submissions.csv is in a good format and has predictions filled out, otherwise, your hard work is wasted!
+- If the submissions.csv file from the previous run is broken, try to fix it by generating it using the best model.
+- If no improvement after 2 consecutive runs with ≥4 solid experiments each, mark "plateaued", summarize evidence, and propose higher‑effort next steps.
+
+Experiment tracking:
+- Append machine-readable rows to experiments.csv: id, description, params, features, cv_mean, cv_std, ci_low, ci_high, fit_time_s, seed(s).
+- Include a Self‑critique with ≥2 risks per run, and a short error analysis (e.g., confusion matrix, length buckets) to guide next hypotheses.
+
+Execution guidance:
+- Run everything via the container: `./run.sh -- python your_script.py`
+- Keep random seeds explicit and consistent across experiments; document them in results.
+
+Required behavior every run:
+1) Context load
+   - Read `agent_status.md` (if present), the latest 2-3 `journal/journal_*.md` (if present), review `./data/description.md`, and list files in `data/`.
+   - Parse the last best cross-validation metric and approach from prior journals. Call this previous_best.
+   - Look at @requirements.txt for available packages.
+
+2) Set a concrete goal for THIS run
+   - Target: beat previous_best accuracy by ≥ 0.5% absolute OR, if that is not achieved, complete at least 3 meaningful experiments with proper evaluation and analysis.
+   - Declare the time/compute budget you will use this run.
+
+3) Plan before doing
+   - Write/append `model_prototype_plan.md` with 3–5 hypotheses, expected impact, and time cost. Prefer fast, high-signal experiments first.
+   - Example levers to consider (respect "Algorithm constraints"): word vs char n-grams, mixed word+char TF-IDF, sublinear TF, vocabulary caps, stopword strategies, class_weight, LogisticRegression C and penalty (L1/L2), LinearSVC (+ CalibratedClassifierCV), SGDClassifier losses, MultinomialNB, LightGBM on hashed features under caps, simple soft-vote/stacked ensembles (only after a single-model, stability-checked win), probability calibration, and error-driven feature engineering.
+
+4) Execute experiments iteratively (minimum 3 unless you surpass the target early)
+   - Use the CV policy above; log per-fold scores and fit times; report accuracy, macro‑F1, mean±std, and 95% CI.
+   - Record each run per "Experiment tracking".
+   - Avoid test leakage; do not fit on test when estimating CV.
+   - If you haven't done so, consider using a subsample of the data to do a quick training run to test our idea first. The actual training job can take long.
+
+5) Decide and ship
+   - Select the best performing approach from this run. Regenerate `submission.csv` from the full train fit ONLY if it beats previous_best by ≥ 0.5% absolute on seed-mean and the 95% CI does not overlap; otherwise do not update `submission.csv`.
+   - If no improvement, perform a short error analysis (e.g., most confused classes, length buckets) and propose next steps.
+
+6) Logging and status
+   - Create `journal/journal_YYYYMMDD_HHMMSS.md` with sections: Context, Goal, Plan, Experiments (table), Results, Self-critique (list at least 2 risks/weaknesses), Decision, Next actions.
+   - Update `agent_status.md` with current best score, best approach, and a prioritized TODO backlog for the next run. Do NOT set the status to "completed" unless termination criteria below are met.
+   - If shipped, note the new `submission.csv` and delta vs previous_best.
+
+Termination criteria (when you may mark completed in `agent_status.md`):
+   - Either: improved by ≥ 0.5% absolute over previous_best and there are no low-cost, high-likelihood next steps remaining within budget; or
+   - After two consecutive runs with ≥ 4 solid experiments each and no measurable improvement, mark as "plateaued", summarize why, and propose higher-effort strategies.
+
+Safety and quality guardrails:
+   - Never read or infer labels for test data; use test only for final predictions.
+   - Keep preprocessing identical across CV folds and final fit.
+   - Always report fold stats and random_state used.
+
+Housekeeping:
+   - If `eda_plan.md` does not exist, create it with a concise data exploration plan; otherwise, update if new insights emerge.
+   - Maintain `model_prototype_plan.md` as a living plan; update it each run with what was tried and what is next.
+   - You may install Python packages, edit code, and run code. Summarize results in a new time-stamped journal entry each run.
+
+Protected files (DO NOT MODIFY):
+   - `user_prompt.txt` — This orchestration prompt
+   - `prompt.sh` — Agent execution script  
+   - `run_iterations.sh` — Multi-iteration convenience script
+   - `requirements.txt` — Core dependencies (only modify if absolutely necessary for ML experiments)
+   - `setup_env.sh` — Environment setup script

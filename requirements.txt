@@ -1,0 +1,18 @@
+# Pinned dependencies for reproducible CPU builds
+# Compatible with Python 3.11
+
+# Core scientific stack
+numpy==1.26.4
+scipy==1.11.4
+pandas==2.2.2
+
+# ML libraries
+scikit-learn==1.5.1
+lightgbm==4.5.0
+statsmodels==0.14.2
+
+# NLP / embeddings
+sentence-transformers==3.0.1
+# CPU-only PyTorch; required by sentence-transformers
+# Pin explicitly to avoid resolver picking incompatible builds
+torch==2.3.1
