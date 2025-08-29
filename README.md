@@ -78,6 +78,36 @@ The agent will create and evolve these artifacts:
 
 The agent learns from each iteration, building on previous experiments to improve validation accuracy.
 
+## Using Different Coding Agents
+
+The scripts automatically detect and use available coding agent CLIs (Claude, Gemini, Cursor).
+
+**Auto-detection priority**: Claude → Gemini → Cursor
+
+**To use a specific agent** (when you have multiple installed):
+```bash
+AGENT=gemini ./prompt.sh              # Use Gemini for single run
+AGENT=gemini ./run_iterations.sh 5    # Use Gemini for 5 iterations
+```
+
+**Supported agents:**
+- `claude` — Claude CLI with full flags
+- `gemini` — Gemini CLI with `--yolo` auto-approval  
+- `cursor` — Cursor CLI with `--auto-approve`
+
+**Examples:**
+```bash
+./prompt.sh                           # Auto-detect and use available agent
+AGENT=claude ./prompt.sh              # Force Claude
+AGENT=gemini ./prompt.sh              # Force Gemini
+```
+
+**For persistent agent choice**, set in your shell:
+```bash
+export AGENT=gemini
+./run_iterations.sh 3                 # Will use Gemini for all iterations
+```
+
 **Notes on Docker**
 - No Dockerfile or container runtime is included/used here by default.
 - If you want Docker support, I can add a `Dockerfile` and helper scripts.
