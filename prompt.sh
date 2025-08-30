@@ -20,7 +20,7 @@ run_claude() {
 
 run_gemini() {
     echo "Using Gemini CLI..."
-    gemini -p "$prompt_text" --debug --yolo 2>&1 | tee "$log_file"
+    gemini -p "$prompt_text" -m gemini-2.5-flash --debug --yolo 2>&1 | tee "$log_file"
 }
 
 run_cursor() {
