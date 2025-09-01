@@ -31,4 +31,34 @@ else
   echo "No requirements.txt found; skipping dependency install"
 fi
 
+# Download required NLTK data packages
+echo "Downloading NLTK data packages (punkt, tagger, wordnet, etc.)"
+python - <<'PY'
+import ssl
+import nltk
+
+# Handle environments with custom/strict SSL by allowing unverified context
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
+
+packages = [
+    'punkt',
+    'averaged_perceptron_tagger',
+    'wordnet',
+    'punkt_tab',
+    'averaged_perceptron_tagger_eng',
+]
+
+for pkg in packages:
+    try:
+        ok = nltk.download(pkg, quiet=True)
+        print(f"nltk: {pkg} => {'ok' if ok else 'already present or skipped'}")
+    except Exception as e:
+        print(f"nltk: warning: failed to download {pkg}: {e}")
+PY
+
 echo "Environment ready. Activate with: source $VENVDIR/bin/activate"
