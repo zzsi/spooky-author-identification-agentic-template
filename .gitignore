@@ -45,8 +45,8 @@ ehthumbs.db
 Thumbs.db
 
 # Logs and outputs
-logs/
-*.log
+# logs/
+# *.log
 cache/
 
 # Model artifacts and outputs
