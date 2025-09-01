@@ -31,6 +31,7 @@ Suggested Baselines (non‑binding)
 - Time series: simple lag/rolling features with boosting or linear models; classical models if suitable.
 
 Tuning Strategy
+- Use a small subsample of data to find the ballpark of optimal model architecture/class, and hyperparams.
 - Small RandomizedSearchCV or tiny grids on high‑impact params (e.g., regularization, learning_rate, depth, n_estimators, n‑gram ranges, max_features).
 - Consider simple ensembles only after one model shows a stable win over baseline.
 
@@ -55,7 +56,7 @@ Required Steps Each Run
 5) Decide and ship
 - Regenerate submission.csv only if the new approach clearly and repeatably beats previous_best beyond noise (e.g., non‑overlapping CIs or consistent per‑fold wins with practical delta).
 - Validate submission.csv against data/sample_submission.csv: columns/order/shape/dtypes; no NaNs/±inf; deterministic ordering by ID.
-- When shipping, also write submissions/submission_{iter:03d}.csv and update submission.csv; include file hash in the journal.
+- When shipping, also write one submissions/submission_{iter:03d}.csv for each iteration and update submission.csv; include file hash in the journal.
 
 6) Logging and status
 - Create exactly one journal/journal_YYYYMMDD_HHMMSS.md with: Context, Goal, Plan, Experiments (table), Results, Self‑critique (≥2 risks/weaknesses), Decision, Next actions.
