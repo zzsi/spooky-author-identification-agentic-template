@@ -1,15 +1,21 @@
 Refer to ./data/description.md for task overview and evaluation details. Data files are in ./data.
 
-This is an iterative improvement loop. Do NOT stop just because a file says the task is completed. Treat prior "completed" states as snapshots; your job each run is to improve, analyze, or tighten the solution.
+Single-pass run policy (clarifies loop and stopping):
+- Treat each invocation as one self-contained run that completes and exits.
+- Perform up to 2 compact, well-motivated experiments in this run (default 1–2; keep within the time budget below), then stop.
+- Produce exactly one journal file for this run and update agent_status.md once at the end.
+- Do not start another iteration after writing the journal/status for this run.
+
+This is an iterative improvement loop across runs. Do NOT stop improving across separate invocations just because a file says the task is completed. Treat prior "completed" states as snapshots; your job each run is to improve, analyze, or tighten the solution — but keep each single run bounded per the policy above.
 
 General principles (keep it simple and competition‑agnostic):
 - Favor straightforward, strong baselines suitable for the task and data size.
 - Keep compute modest. Prefer small models/searches and short runs; use GPU if available but do not depend on it.
 - Avoid heavy tooling (e.g., no Optuna). Use small `RandomizedSearchCV` or tiny grids when tuning.
 
-Iterative improvement rules (override any "task completed" status):
+Iterative improvement rules (within a single pass; override any "task completed" status):
 - Use multiple seeds when models are stochastic. Default to 3 seeds (e.g., {42, 123, 456}); increase if results look noisy. Report mean±std and 95% CI.
-- Aim for 2–3 well‑motivated experiments per run, budget permitting.
+- Aim for 1–2 well‑motivated experiments per run, budget permitting.
 - If multiple consecutive runs with solid experiments show no meaningful improvement, you may declare a plateau and propose next steps.
 - Primary metric: use the competition’s official metric (parse from metadata or `data/description.md` where possible). Also report one relevant secondary metric when helpful. Decide by the primary metric.
 
@@ -44,7 +50,7 @@ Experiment tracking:
 - Include a short Self‑critique (≥2 risks) and brief error analysis tailored to the task (e.g., top confusions for classification; residuals for regression; horizon buckets for forecasting).
 
 Execution guidance:
-- Each training run should have a timeout, to prevent it running too long. Default 1 hour. You can adjust as needed.
+- Each training run should have a timeout, to prevent it running too long. Default 30–60 minutes; prefer 30 minutes unless there is clear benefit.
 - Use project scripts if provided (e.g., `./prompt.sh`, `./run_iterations.sh`). Otherwise, run Python entrypoints directly.
 - Keep random seeds explicit and consistent across experiments; document them in results.
 
@@ -61,7 +67,7 @@ Required behavior every run:
 3) Plan before doing
    - Write/append `model_prototype_plan.md` with 3–5 hypotheses, expected impact, and time cost. Prefer fast, high‑signal experiments first.
 
-4) Execute experiments iteratively (minimum 2–3 unless you surpass the target early)
+4) Execute experiments (1–2 unless you surpass the target early)
    - Use the CV policy above; log per‑fold scores and fit times; report the primary metric (and one secondary if helpful), mean±std, and 95% CI.
    - Record each experiment per "Experiment tracking".
    - Avoid test leakage; do not fit on test when estimating CV. Use quick subsamples for sanity checks if needed.
@@ -71,13 +77,16 @@ Required behavior every run:
    - If no improvement, perform a short error analysis and propose next steps.
 
 6) Logging and status
-   - Create `journal/journal_YYYYMMDD_HHMMSS.md` with sections: Context, Goal, Plan, Experiments (table), Results, Self‑critique (≥2 risks/weaknesses), Decision, Next actions.
-   - Update `agent_status.md` with current best score, best approach, and a prioritized TODO backlog for the next run. Do NOT set the status to "completed" unless termination criteria below are met.
+   - Create exactly one `journal/journal_YYYYMMDD_HHMMSS.md` for this run with sections: Context, Goal, Plan, Experiments (table), Results, Self‑critique (≥2 risks/weaknesses), Decision, Next actions. Do not create multiple journal files in one run; include all experiments in this single file.
+   - Update `agent_status.md` once at the end of the run. Treat the "best" metric as best‑so‑far across all runs; it must be monotonic. Only update the best score/approach if strictly improved versus `previous_best` by the primary metric (and per the decision rule); otherwise leave the best fields unchanged and append a brief "no improvement" note plus next actions. Do NOT set the status to "completed" unless termination criteria below are met.
    - If shipped, note the new `submission.csv` and delta vs `previous_best`.
 
 Termination criteria (when you may mark completed in `agent_status.md`):
    - Either: improved over `previous_best` in a statistically and practically meaningful way and there are no low‑cost, high‑likelihood next steps remaining within budget; or
-   - After multiple consecutive runs with solid experiments and no measurable improvement, mark as "plateaued", summarize why, and propose higher‑effort strategies.
+   - After multiple consecutive single‑pass runs with solid experiments and no measurable improvement, mark as "plateaued", summarize why, and propose higher‑effort strategies.
+
+Run completion rule:
+- After writing the single journal file and performing the single `agent_status.md` update for this run, terminate the run without launching further iterations.
 
 Safety and quality guardrails:
    - Never read or infer labels for test data; use test only for final predictions.
