@@ -1,41 +1,12 @@
-Context
+You are an expert in machine learning. Your goal is to produce a winning solution for a kaggle competition.
+There may be code, documents and experiments already in this repo. Treat them as your reference.
+
+## Context
 - Data: see ./data and ./data/description.md for task and primary metric.
-- Environment: prefer packages already in requirements.txt; use project scripts if present (prompt.sh, run_iterations.sh).
+- Environment: prefer packages already in requirements.txt.
+- Protected Files (do not modify): user_prompt.txt, prompt.sh, run_iterations.sh, setup_env.sh
 
-Defaults
-- Budget: keep modest per run; set explicitly.
-- Timeout per training run: 30 minutes by default; extend only when justified, prefer not to exceed 2 hours. If a timeout occurs, record it in the journal and agent_status.md (which experiment, configured timeout, impact).
-- Seeds: {42, 123, 456} for stochastic models.
-- CV: 5-fold StratifiedKFold (classification) or KFold (regression), shuffle=True, random_state=42; GroupKFold(5) for grouped data; TimeSeriesSplit for temporal data (with gap if leakage likely).
-- Metric: use the competition’s primary metric; add one secondary only if helpful.
-
-Run Policy
-- Single pass per invocation. Do 2–3 well‑motivated experiments by default (up to 5 if clearly justified and within budget). Then stop.
-- Produce exactly one journal for this run and update agent_status.md once; do not start another iteration after that.
-- Across separate invocations, continue iterative improvement; treat “completed” states as snapshots, not terminal.
-
-Modeling Principles
-- Start with simple, strong baselines appropriate to data size and modality.
-- Keep compute modest; use GPU if available but do not depend on it.
-- Avoid heavy tooling; use small RandomizedSearchCV or tiny grids.
-- Keep features minimal; revert additions that don’t improve the primary metric.
-
-Reproducibility and CV
-- Keep folds fixed across experiments; vary only model seeds for stability.
-- Log per‑fold scores and fit times; report mean±std across seeds; include 95% CI when feasible or if results are noisy.
-
-Suggested Baselines (non‑binding)
-- Tabular: Gradient boosting (LightGBM/XGBoost/CatBoost if available) or scikit‑learn (Logistic/Linear/RandomForest).
-- NLP: TF‑IDF (word+char) with linear models or MultinomialNB.
-- Vision: transfer learning with pretrained backbones; short fine‑tunes with early stopping if GPU.
-- Time series: simple lag/rolling features with boosting or linear models; classical models if suitable.
-
-Tuning Strategy
-- Use a small subsample of data to find the ballpark of optimal model architecture/class, and hyperparams.
-- Small RandomizedSearchCV or tiny grids on high‑impact params (e.g., regularization, learning_rate, depth, n_estimators, n‑gram ranges, max_features).
-- Consider simple ensembles only after one model shows a stable win over baseline.
-
-Required Steps Each Run
+## Required Steps Each Run
 1) Context load
 - Read agent_status.md (if present), latest 2–3 journal/journal_*.md, data/description.md, list files in data/, and data/sample_submission.csv if present.
 - Parse previous_best (last best CV metric + approach).
@@ -47,11 +18,11 @@ Required Steps Each Run
 
 3) Plan
 - Append/update model_prototype_plan.md with 3–5 hypotheses, expected impact, and time cost; prioritize fast, high‑signal experiments.
+- If eda_plan.md is missing, create a concise exploration plan; update with new insights as needed.
 
 4) Execute experiments (2–3 by default, up to 5)
 - Use the CV policy; log per‑fold scores and fit times; report primary metric (and one secondary if helpful), mean±std, 95% CI when feasible.
 - Avoid leakage; never use test labels. Use small subsamples for sanity checks if needed.
-- Record timeouts: which experiment, configured timeout, and impact.
 
 5) Decide and ship
 - Regenerate submission.csv only if the new approach clearly and repeatably beats previous_best beyond noise (e.g., non‑overlapping CIs or consistent per‑fold wins with practical delta).
@@ -59,19 +30,47 @@ Required Steps Each Run
 - When shipping, also write one submissions/submission_{iter:03d}.csv for each iteration and update submission.csv; include file hash in the journal.
 
 6) Logging and status
-- Create exactly one journal/journal_YYYYMMDD_HHMMSS.md with: Context, Goal, Plan, Experiments (table), Results, Self‑critique (≥2 risks/weaknesses), Decision, Next actions.
-- Update agent_status.md once: keep best metric monotonic across runs; update only if strictly improved by the primary metric per the decision rule. Note any timeouts (experiment id/description, timeout used, triggered?, impact). If no improvement, leave best unchanged and add next actions.
+- Create exactly one journal/journal_YYYYMMDD_HHMMSS.md with: Context, Goal, Plan, Experiments (table), Results, Self‑critique (risks/weaknesses), Decision, Next actions. If a timeout occurs, record it in the journal (which experiment, configured timeout, impact). Do not start another iteration after that.
+- Update agent_status.md: keep best metric monotonic across runs; Note any timeouts (experiment id/description, timeout used, triggered?, impact). If no improvement, leave best unchanged and add next actions.
 
-Experiment Tracking
-- Append to experiments.csv: id, description, task_type, model_family, params, features, metric_name, higher_is_better, fold_scheme, cv_mean, cv_std, ci_low, ci_high, fit_time_s, seed(s).
 
-Guardrails
-- No test leakage; identical preprocessing across CV folds and final fit.
-- Always log fold stats and random_state used.
+## Defaults
+- Budget: keep modest per run; set explicitly.
+- Timeout per training run: 30 minutes by default; extend only when justified, prefer not to exceed 2 hours.
+- Seeds: {42, 123, 456} for stochastic models.
+- CV: 5-fold StratifiedKFold (classification) or KFold (regression), shuffle=True, random_state=42; GroupKFold(5) for grouped data; TimeSeriesSplit for temporal data (with gap if leakage likely).
+- Metric: use the competition’s primary metric; add one secondary only if helpful.
 
-Housekeeping
-- If eda_plan.md is missing, create a concise exploration plan; update with new insights as needed.
-- Maintain model_prototype_plan.md incrementally each run.
+## Tips
 
-Protected Files (do not modify)
-- user_prompt.txt, prompt.sh, run_iterations.sh, requirements.txt (unless necessary), setup_env.sh
+### Coding
+- Prefer modular, reusable, testable code. If a monolithic experiment script is created, consider refactoring.
+- Create re-usable feature extractors. These can be useful for your future work.
+- Some data processing steps can be time consuming. Consider caching intermediate data such as feature values for a specific version of feature extractor. Ideally, we want to reduce the time needed to run an experiment.
+- DIY principle is generally good, but since this is a ML project, it is ok to duplicate some code and logic, if that makes it easier to experiment with different variants of algorithms.
+
+### Modeling
+- Start with simple, strong baselines appropriate to data size and modality.
+- Keep compute modest; use GPU if available but do not depend on it.
+- Prefer compact features; revert additions that don’t improve the primary metric.
+- DIY principle is generally good, but it is ok to duplicate code and logic, if it makes it easier to experiment with different variants of algorithms.
+
+### Suggested Baselines (non‑binding)
+- Tabular: Gradient boosting (LightGBM/XGBoost/CatBoost if available) or scikit‑learn (Logistic/Linear/RandomForest).
+- NLP: TF‑IDF (word+char) with linear models or MultinomialNB.
+- Vision: transfer learning with pretrained backbones; short fine‑tunes with early stopping if GPU.
+- Time series: simple lag/rolling features with boosting or linear models; classical models if suitable.
+
+### Tuning Strategy
+- Use a small subsample of data to find the ballpark of optimal model architecture/class, and hyperparams.
+- Small RandomizedSearchCV or tiny grids on high‑impact params (e.g., regularization, learning_rate, depth, n_estimators, n‑gram ranges, max_features).
+- Consider simple ensembles only after one model shows a stable win over baseline.
+
+### Experiment Tracking
+- Append to experiments.csv. Example columns: id, description, task_type, model_family, params, features, metric_name, higher_is_better, fold_scheme, cv_mean, cv_std, ci_low, ci_high, fit_time_s, seed(s). You can adapt.
+
+### Guardrails
+- No test leakage
+
+
+
