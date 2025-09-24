@@ -11,8 +11,8 @@ This is a template to use a coding agent to find a machine learning solution to 
 
 ## Quick Start
 
-1. **Install prerequisites**: Coding agent CLI (e.g., `claude`) + Python 3.10+ + `uv`
-2. **Setup environment**: `uv venv && source .venv/bin/activate && uv pip sync requirements.txt`
+1. **Install prerequisites**: Coding agent CLI (e.g., `codex`, `claude`, `gemini`) + Python 3.10+
+2. **Setup environment**: `./setup_env.sh && source .venv/bin/activate` (optionally specify Python: `./setup_env.sh python3.11`)
 3. **Run iterations**: `./run_iterations.sh 3` (or `./prompt.sh` + manual commits)
 
 **Environment Setup**
@@ -110,9 +110,19 @@ export AGENT=gemini
 
 **Notes on Docker**
 - No Dockerfile or container runtime is included/used here by default.
-- If you want Docker support, I can add a `Dockerfile` and helper scripts.
 
-**Grading submissions.csv with MLE-bench**
+**Quick Grading Using MLE-bench inside Docker**
+- Ensure Docker is running locally.
+- Run the published spooky MLE-bench container directly to grade the current `submission.csv`:
+  ```bash
+  docker run --rm \
+    -v "$(pwd)/submission.csv:/workspace/submission.csv:ro" \
+    ghcr.io/zzsi/mlebench-spooky \
+    mlebench grade-sample /workspace/submission.csv spooky-author-identification
+  ```
+- The command mounts `submission.csv` read-only and prints the competition metric in JSON.
+
+**Grading submissions.csv by Installing MLE-bench Locally**
 - Install the `mlebench` CLI (choose one):
   - One-off with uvx: `uvx --from git+https://github.com/openai/mle-bench@main mlebench --help`
   - Install into current venv: `uv pip install 'mlebench @ git+https://github.com/openai/mle-bench@main'`
