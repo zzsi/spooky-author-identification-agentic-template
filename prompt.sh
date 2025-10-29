@@ -4,6 +4,17 @@
 # Supports: claude, gemini, cursor, codex, etc.
 # Override with: AGENT=gemini ./prompt.sh
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Ensure the project virtualenv takes precedence for python/pip calls
+if [ -d "$script_dir/.venv/bin" ]; then
+    export PATH="$script_dir/.venv/bin:$PATH"
+    if [ -s "$script_dir/.venv/bin/activate" ]; then
+        # shellcheck disable=SC1091
+        source "$script_dir/.venv/bin/activate"
+    fi
+fi
+
 timestamp="$(date +"%Y%m%d_%H%M%S")"
 mkdir -p "logs"
 log_file="logs/${timestamp}.log"
