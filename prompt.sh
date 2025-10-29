@@ -15,7 +15,7 @@ agent_to_use="${AGENT:-auto}"
 
 run_claude() {
     echo "Using Claude CLI..."
-    claude -p "$prompt_text" --verbose --output-format stream-json --model sonnet --permission-mode bypassPermissions --dangerously-skip-permissions 2>&1 | tee "$log_file"
+    claude -p "$prompt_text" --verbose --output-format stream-json --model opusplan --permission-mode bypassPermissions --dangerously-skip-permissions 2>&1 | tee "$log_file"
 }
 
 run_gemini() {
